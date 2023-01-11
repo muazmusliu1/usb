@@ -44,7 +44,7 @@ public class DumpNames
         if (iManufacturer == 0 || iProduct == 0) return;
 
         // Dump the device name
-        System.out.println(device.getString(iManufacturer) + " "
+        System.out.println(device.getString(iManufacturer) + " @ "
                 + device.getString(iProduct));
         System.out.println("\n "+ desc.idProduct() +"   "+ desc.idVendor());
     }
