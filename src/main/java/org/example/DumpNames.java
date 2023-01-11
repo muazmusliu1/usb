@@ -8,12 +8,7 @@ package org.example;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
-import javax.usb.UsbDevice;
-import javax.usb.UsbDeviceDescriptor;
-import javax.usb.UsbException;
-import javax.usb.UsbHostManager;
-import javax.usb.UsbHub;
-import javax.usb.UsbServices;
+import javax.usb.*;
 
 /**
  * Dumps the names of all USB devices by using the javax-usb API. On
@@ -54,19 +49,34 @@ public class DumpNames
         System.out.println("\n "+ desc.idProduct() +"   "+ desc.idVendor());
     }
 
-    public UsbDevice findDevice(UsbHub hub, short vendorId, short productId)
-    {
+    public static UsbDevice findDevice(UsbHub hub, String temp) throws UnsupportedEncodingException, UsbException {
         for (UsbDevice device : (List<UsbDevice>) hub.getAttachedUsbDevices())
         {
             UsbDeviceDescriptor desc = device.getUsbDeviceDescriptor();
-            if (desc.idVendor() == vendorId && desc.idProduct() == productId) return device;
+            if (device.getString(desc.iManufacturer()).equals(temp)) return device;
             if (device.isUsbHub())
             {
-                device = findDevice((UsbHub) device, vendorId, productId);
+                device = findDevice((UsbHub) device, temp);
                 if (device != null) return device;
             }
         }
         return null;
+    }
+
+    private static void connectWithDevice(final UsbDevice device) throws UsbException, UnsupportedEncodingException {
+        UsbConfiguration configuration = device.getActiveUsbConfiguration();
+        System.out.println(configuration.getConfigurationString());
+        UsbInterface iface = configuration.getUsbInterface((byte) 1);
+        iface.claim();
+        try
+        {
+            //write or read
+            System.out.printf("Reached");
+        }
+        finally
+        {
+            iface.release();
+        }
     }
     private static void processDevice(final UsbDevice device)
     {
@@ -89,29 +99,23 @@ public class DumpNames
             }
             catch (Exception e)
             {
-                // On Linux this can fail because user has no write permission
-                // on the USB device file. On Windows it can fail because
-                // no libusb device driver is installed for the device
+
                 System.err.println("Ignoring problematic device: " + e);
             }
         }
     }
 
-    /**
-     * Main method.
-     *
-     * @param args
-     *            Command-line arguments (Ignored)
-     * @throws UsbException
-     *             When an USB error was reported which wasn't handled by this
-     *             program itself.
-     */
-    public static void main(final String[] args) throws UsbException
-    {
+
+    public static void main(final String[] args) throws UsbException, UnsupportedEncodingException {
         // Get the USB services and dump information about them
         final UsbServices services = UsbHostManager.getUsbServices();
 
         // Dump the root USB hub
+
         processDevice(services.getRootUsbHub());
+        if(findDevice(services.getRootUsbHub(),"FTDI") !=null){
+            connectWithDevice(findDevice(services.getRootUsbHub(),"FTDI"));
+        }
+
     }
 }
