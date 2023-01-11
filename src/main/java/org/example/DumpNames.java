@@ -41,7 +41,9 @@ public class DumpNames
     {
         // Read the string descriptor indices from the device descriptor.
         // If they are missing then ignore the device.
+
         final UsbDeviceDescriptor desc = device.getUsbDeviceDescriptor();
+
         final byte iManufacturer = desc.iManufacturer();
         final byte iProduct = desc.iProduct();
         if (iManufacturer == 0 || iProduct == 0) return;
@@ -49,14 +51,23 @@ public class DumpNames
         // Dump the device name
         System.out.println(device.getString(iManufacturer) + " "
                 + device.getString(iProduct));
+        System.out.println("\n "+ desc.idProduct() +"   "+ desc.idVendor());
     }
 
-    /**
-     * Processes the specified USB device.
-     *
-     * @param device
-     *            The USB device to process.
-     */
+    public UsbDevice findDevice(UsbHub hub, short vendorId, short productId)
+    {
+        for (UsbDevice device : (List<UsbDevice>) hub.getAttachedUsbDevices())
+        {
+            UsbDeviceDescriptor desc = device.getUsbDeviceDescriptor();
+            if (desc.idVendor() == vendorId && desc.idProduct() == productId) return device;
+            if (device.isUsbHub())
+            {
+                device = findDevice((UsbHub) device, vendorId, productId);
+                if (device != null) return device;
+            }
+        }
+        return null;
+    }
     private static void processDevice(final UsbDevice device)
     {
         // When device is a hub then process all child devices
